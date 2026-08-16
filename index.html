@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f1226" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>AI Sudoku — Tutor &amp; Puzzles</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="brand">
+          <span class="logo">◧</span>
+          <div>
+            <h1>AI Sudoku</h1>
+            <p class="tag">Learn &amp; solve with an AI tutor</p>
+          </div>
+        </div>
+        <button id="themeBtn" class="icon-btn" title="Toggle theme">◐</button>
+      </header>
+
+      <div class="topbar">
+        <select id="difficulty" aria-label="Difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+          <option value="expert">Expert</option>
+        </select>
+        <button id="newBtn" class="btn primary">New</button>
+      </div>
+
+      <div id="status" class="status"></div>
+
+      <div class="board-wrap">
+        <div id="board" class="board"></div>
+      </div>
+
+      <div id="hintBox" class="hint-box hidden">
+        <div class="hint-head">
+          <span id="hintTitle" class="hint-title"></span>
+          <button id="hintClose" class="icon-btn small">✕</button>
+        </div>
+        <p id="hintText" class="hint-text"></p>
+        <button id="hintApply" class="btn small">Apply hint</button>
+      </div>
+
+      <div class="pad">
+        <div class="num-row" id="numPad"></div>
+        <div class="action-row">
+          <button id="undoBtn" class="btn">↶ Undo</button>
+          <button id="noteBtn" class="btn toggle">✎ Notes</button>
+          <button id="eraseBtn" class="btn">⌫ Erase</button>
+          <button id="hintBtn" class="btn accent">💡 Hint</button>
+        </div>
+      </div>
+
+      <footer class="stats">
+        <span id="timer">00:00</span>
+        <span id="mistakes">Mistakes: 0</span>
+      </footer>
+    </div>
+
+    <script src="js/engine.js"></script>
+    <script src="js/hints.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+      // Register service worker for installable / offline PWA (secure contexts only).
+      if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("sw.js").catch(function () {});
+        });
+      }
+    </script>
+  </body>
+</html>
