@@ -15,10 +15,64 @@
   const lbModal = document.getElementById("lbModal");
   const lbList = document.getElementById("lbList");
 
-  // Leaderboard API base. Empty = same origin (works when served by server.js).
-  // For the static GitHub Pages build, set this to your backend URL, e.g.
-  // const API_BASE = "https://your-tunnel.loca.lt";
+  // Leaderboard backend.
+  // Option A (local demo): serve via server.js and leave API_BASE as "" (same origin).
+  // Option B (published app / permanent): create a FREE Supabase project, run the
+  //   SQL in supabase-scores.sql, then paste your project URL + anon key below.
   const API_BASE = "";
+  const SUPABASE = {
+    url: "", // e.g. "https://abcd1234.supabase.co"
+    anonKey: "", // anon public key (safe to ship in client)
+  };
+  const useSupabase = () => !!(SUPABASE.url && SUPABASE.anonKey);
+
+  async function fetchScores(date) {
+    if (useSupabase()) {
+      const r = await fetch(
+        `${SUPABASE.url}/rest/v1/scores?select=name,timeMs&date=eq.${date}&order=timeMs.asc&limit=25`,
+        {
+          headers: {
+            apikey: SUPABASE.anonKey,
+            Authorization: "Bearer " + SUPABASE.anonKey,
+          },
+        }
+      );
+      const rows = await r.json();
+      return Array.isArray(rows)
+        ? rows.map((s) => ({ name: s.name, timeMs: s.timeMs }))
+        : [];
+    }
+    const r = await fetch(API_BASE + "/api/leaderboard?date=" + date);
+    const d = await r.json();
+    return (d && d.scores) || [];
+  }
+
+  async function postScore(payload) {
+    if (useSupabase()) {
+      await fetch(`${SUPABASE.url}/rest/v1/scores`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE.anonKey,
+          Authorization: "Bearer " + SUPABASE.anonKey,
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          date: payload.date,
+          name: payload.name,
+          timeMs: payload.timeMs,
+          difficulty: payload.difficulty,
+          mode: payload.mode,
+        }),
+      });
+      return;
+    }
+    await fetch(API_BASE + "/api/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
 
   const state = {
     puzzle: null,
@@ -361,10 +415,9 @@
 
   function showLeaderboard() {
     const date = state.dailyDate || new Date().toISOString().slice(0, 10);
-    fetch(API_BASE + "/api/leaderboard?date=" + date)
-      .then((r) => r.json())
-      .then((d) => {
-        renderLb((d && d.scores) || []);
+    fetchScores(date)
+      .then((list) => {
+        renderLb(list);
         lbModal.classList.remove("hidden");
       })
       .catch(() => {
@@ -408,11 +461,7 @@
       difficulty: "medium",
       mode: "daily",
     };
-    fetch(API_BASE + "/api/score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
+    postScore(payload)
       .then(() => showLeaderboard())
       .catch(() => flash("Couldn't reach leaderboard (backend offline?)"));
   }
