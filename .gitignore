@@ -1,3 +1,4 @@
 node_modules/
 scores.json
 *.log
+android/upload-keystore.jks

@@ -3,6 +3,6 @@
   "target": {
     "namespace": "android_app",
     "package_name": "com.aksbeat.aisudoku",
-    "sha256_cert_fingerprints": ["REPLACE_WITH_SHA256_OF_SIGNING_KEY"]
+    "sha256_cert_fingerprints": ["C7:E7:10:5B:3D:9D:A3:82:10:CB:5E:E6:B9:57:A7:2D:A4:1E:F3:12:50:2A:FA:77:3C:D1:58:EA:AD:D6:B1:0A"]
   }
 }
