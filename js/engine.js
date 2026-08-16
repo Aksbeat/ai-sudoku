@@ -15,12 +15,37 @@
     return g.map((row) => row.slice());
   }
 
-  function shuffle(arr) {
+  function shuffle(arr, rng) {
+    rng = rng || Math.random;
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(rng() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+  }
+
+  // Deterministic PRNG so a given seed string always yields the same puzzle.
+  function xmur3(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function () {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return (h ^= h >>> 16) >>> 0;
+    };
+  }
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
 
   function peers(r, c) {
@@ -55,17 +80,17 @@
     return true;
   }
 
-  // Fill a complete valid solution via randomized backtracking.
-  function fillSolution(grid) {
+  // Fill a complete valid solution via backtracking (rng-injectable).
+  function fillSolution(grid, rng) {
     const idx = grid.flat().indexOf(0);
     if (idx === -1) return true;
     const r = Math.floor(idx / SIZE);
     const c = idx % SIZE;
-    const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], rng);
     for (const n of nums) {
       if (isValidPlacement(grid, r, c, n)) {
         grid[r][c] = n;
-        if (fillSolution(grid)) return true;
+        if (fillSolution(grid, rng)) return true;
         grid[r][c] = 0;
       }
     }
@@ -136,15 +161,16 @@
   // difficulty: 'easy' | 'medium' | 'hard' | 'expert'
   const GIVENS = { easy: 42, medium: 34, hard: 28, expert: 24 };
 
-  function generate(difficulty = "medium") {
+  function generate(difficulty = "medium", rng) {
     const solution = emptyGrid();
-    fillSolution(solution);
+    fillSolution(solution, rng);
     const puzzle = cloneGrid(solution);
 
     const target = GIVENS[difficulty] || GIVENS.medium;
     // Order of cells to attempt removal (randomized).
     const cells = shuffle(
-      Array.from({ length: SIZE * SIZE }, (_, i) => i)
+      Array.from({ length: SIZE * SIZE }, (_, i) => i),
+      rng
     );
 
     let removed = 0;
@@ -168,6 +194,13 @@
     return { puzzle, solution, difficulty };
   }
 
+  // Deterministic daily puzzle: same seed (date) -> same puzzle for everyone.
+  function generateSeeded(seedStr, difficulty = "medium") {
+    const seed = xmur3(String(seedStr))();
+    const rng = mulberry32(seed);
+    return generate(difficulty, rng);
+  }
+
   global.SudokuEngine = {
     SIZE,
     BOX,
@@ -179,6 +212,7 @@
     popcount,
     isComplete,
     generate,
+    generateSeeded,
     GIVENS,
   };
 })(typeof window !== "undefined" ? window : globalThis);

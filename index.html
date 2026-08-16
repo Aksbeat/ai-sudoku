@@ -33,7 +33,9 @@
           <option value="hard">Hard</option>
           <option value="expert">Expert</option>
         </select>
+        <button id="dailyBtn" class="btn">📅 Daily</button>
         <button id="newBtn" class="btn primary">New</button>
+        <button id="lbBtn" class="icon-btn" title="Leaderboard">🏆</button>
       </div>
 
       <div id="status" class="status"></div>
@@ -65,6 +67,16 @@
         <span id="timer">00:00</span>
         <span id="mistakes">Mistakes: 0</span>
       </footer>
+    </div>
+
+    <div id="lbModal" class="modal hidden">
+      <div class="modal-card">
+        <div class="hint-head">
+          <span id="lbTitle" class="hint-title">🏆 Daily Leaderboard</span>
+          <button id="lbClose" class="icon-btn small">✕</button>
+        </div>
+        <ol id="lbList" class="lb-list"></ol>
+      </div>
     </div>
 
     <script src="js/engine.js"></script>

@@ -291,3 +291,54 @@ select {
   font-size: 13px;
   padding: 4px 2px;
 }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 50;
+}
+.modal.hidden {
+  display: none;
+}
+.modal-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.lb-list {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lb-list li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+}
+.lb-list .lb-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.lb-list .lb-time {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.lb-empty {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 12px 0;
+}

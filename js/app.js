@@ -12,6 +12,13 @@
   const hintBox = document.getElementById("hintBox");
   const hintTitle = document.getElementById("hintTitle");
   const hintText = document.getElementById("hintText");
+  const lbModal = document.getElementById("lbModal");
+  const lbList = document.getElementById("lbList");
+
+  // Leaderboard API base. Empty = same origin (works when served by server.js).
+  // For the static GitHub Pages build, set this to your backend URL, e.g.
+  // const API_BASE = "https://your-tunnel.loca.lt";
+  const API_BASE = "";
 
   const state = {
     puzzle: null,
@@ -26,6 +33,8 @@
     timer: 0,
     timerId: null,
     solved: false,
+    mode: "classic",
+    dailyDate: null,
   };
 
   const STORE_KEY = "ai-sudoku-save-v1";
@@ -43,6 +52,8 @@
           given: state.given,
           mistakes: state.mistakes,
           timer: state.timer,
+          mode: state.mode,
+          dailyDate: state.dailyDate,
           difficulty: document.getElementById("difficulty").value,
         })
       );
@@ -62,6 +73,8 @@
       state.given = d.given;
       state.mistakes = d.mistakes || 0;
       state.timer = d.timer || 0;
+      state.mode = d.mode || "classic";
+      state.dailyDate = d.dailyDate || null;
       document.getElementById("difficulty").value = d.difficulty || "medium";
       return true;
     } catch (e) {
@@ -298,6 +311,8 @@
   // ---------- Game lifecycle ----------
   function newGame() {
     const diff = document.getElementById("difficulty").value;
+    state.mode = "classic";
+    state.dailyDate = null;
     flash("Generating " + diff + " puzzle…");
     // allow UI paint
     setTimeout(() => {
@@ -321,6 +336,87 @@
     }, 30);
   }
 
+  function startDaily() {
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const { puzzle, solution } = E.generateSeeded(dateStr, "medium");
+    state.mode = "daily";
+    state.dailyDate = dateStr;
+    state.puzzle = puzzle;
+    state.solution = solution;
+    state.grid = E.cloneGrid(puzzle);
+    state.notes = Array.from({ length: SIZE }, () =>
+      Array.from({ length: SIZE }, () => [])
+    );
+    state.given = puzzle.map((row) => row.map((v) => v !== 0));
+    state.selected = null;
+    state.mistakes = 0;
+    state.history = [];
+    state.solved = false;
+    state.timer = 0;
+    startTimer();
+    hintBox.classList.add("hidden");
+    render();
+    flash("📅 Daily puzzle — solve fast and top the leaderboard!");
+  }
+
+  function showLeaderboard() {
+    const date = state.dailyDate || new Date().toISOString().slice(0, 10);
+    fetch(API_BASE + "/api/leaderboard?date=" + date)
+      .then((r) => r.json())
+      .then((d) => {
+        renderLb((d && d.scores) || []);
+        lbModal.classList.remove("hidden");
+      })
+      .catch(() => {
+        lbList.innerHTML =
+          '<div class="lb-empty">Leaderboard unavailable (backend offline).</div>';
+        lbModal.classList.remove("hidden");
+      });
+  }
+
+  function renderLb(list) {
+    if (!list.length) {
+      lbList.innerHTML =
+        '<div class="lb-empty">No scores yet — be the first!</div>';
+      return;
+    }
+    lbList.innerHTML = "";
+    for (const s of list) {
+      const li = document.createElement("li");
+      const n = document.createElement("span");
+      n.className = "lb-name";
+      n.textContent = s.name;
+      const t = document.createElement("span");
+      t.className = "lb-time";
+      t.textContent = fmt(Math.round(s.timeMs / 1000));
+      li.appendChild(n);
+      li.appendChild(t);
+      lbList.appendChild(li);
+    }
+  }
+
+  function submitDailyScore() {
+    const name =
+      (window.prompt(
+        "🎉 You solved the daily! Name for the leaderboard:",
+        "Player"
+      ) || "Player").slice(0, 24);
+    const payload = {
+      date: state.dailyDate,
+      name: name,
+      timeMs: state.timer * 1000,
+      difficulty: "medium",
+      mode: "daily",
+    };
+    fetch(API_BASE + "/api/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(() => showLeaderboard())
+      .catch(() => flash("Couldn't reach leaderboard (backend offline?)"));
+  }
+
   function checkSolved() {
     if (E.isComplete(state.grid)) {
       // verify correctness
@@ -332,6 +428,7 @@
         state.solved = true;
         stopTimer();
         flash("Solved! 🎉 Time " + fmt(state.timer));
+        if (state.mode === "daily") submitDailyScore();
       }
     }
   }
@@ -369,6 +466,14 @@
 
   // ---------- Wire up ----------
   document.getElementById("newBtn").addEventListener("click", newGame);
+  document.getElementById("dailyBtn").addEventListener("click", startDaily);
+  document.getElementById("lbBtn").addEventListener("click", showLeaderboard);
+  document.getElementById("lbClose").addEventListener("click", () =>
+    lbModal.classList.add("hidden")
+  );
+  lbModal.addEventListener("click", (e) => {
+    if (e.target === lbModal) lbModal.classList.add("hidden");
+  });
   document.getElementById("undoBtn").addEventListener("click", undo);
   document.getElementById("eraseBtn").addEventListener("click", eraseCell);
   document.getElementById("hintBtn").addEventListener("click", showHint);
